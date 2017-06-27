@@ -200,6 +200,8 @@ class MemCacheTest extends PHPUnit_Framework_TestCase
      */
     public function getResult()
     {
+        fwrite(STDOUT, "\n". __METHOD__);
+
         $this->assertInternalType('integer', $this->getMemory()->getResultCode());
         $this->assertInternalType('string', $this->getMemory()->getResultMessage());
     }
@@ -214,6 +216,8 @@ class MemCacheTest extends PHPUnit_Framework_TestCase
      */
     public function servers()
     {
+        fwrite(STDOUT, "\n". __METHOD__);
+
         $mem = new MemCache();
         $mem->addServer('test', 123);
         $this->assertEquals([['test', 123, 0]], array_values($mem->getServers()));
@@ -223,6 +227,21 @@ class MemCacheTest extends PHPUnit_Framework_TestCase
 
         $mem->resetServerList();
         $this->assertEquals([], $mem->getServers());
+    }
+
+    /**
+     * @test
+     * @covers ::getOptions
+     * @covers ::setOptions
+     */
+    public function options()
+    {
+        fwrite(STDOUT, "\n". __METHOD__);
+
+        $mem = new MemCache();
+        $mem->setOptions(['test' => 123]);
+        $mem->setOptions(['test' => 1234, 'test2' => 12345]);
+        $this->assertEquals(['test' => 123, 'test2' => 12345], $mem->getOptions());
     }
 
     protected function setUp()

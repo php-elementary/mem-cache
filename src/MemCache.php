@@ -27,6 +27,11 @@ class MemCache
     protected $servers = [];
 
     /**
+     * @var array
+     */
+    protected $options = [];
+
+    /**
      * @link http://php.net/manual/en/memcached.add.php
      * @param string $key
      * @param mixed $value
@@ -320,7 +325,14 @@ class MemCache
             $this->setMemcached(new Memcached());
 
             $servers = array_values($this->getServers());
-            $this->memcached->addServers($servers);
+            if ($servers) {
+                $this->memcached->addServers($servers);
+            }
+
+            $options = array_values($this->getOptions());
+            if ($options) {
+                $this->memcached->setOptions($options);
+            }
         }
 
         return $this->memcached;
@@ -394,6 +406,36 @@ class MemCache
 
         if ($this->memcached !== null && !empty($nServers)) {
             $this->memcached->addServers($nServers);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return array
+     */
+    public function getOptions()
+    {
+        return $this->options;
+    }
+
+    /**
+     * @link http://php.net/manual/en/memcached.setoptions.php
+     * @param array $options
+     *
+     * @return $this
+     */
+    public function setOptions(array $options)
+    {
+        foreach ($options as $key=>$value) {
+            if (!array_key_exists($key, $this->servers)) {
+                $options[$key] = $value;
+                $this->options[$key] = $value;
+            }
+        }
+
+        if ($this->memcached !== null && !empty($options)) {
+            $this->memcached->setOptions($options);
         }
 
         return $this;
