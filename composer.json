@@ -1,6 +1,6 @@
 {
     "name":         "elementary/mem-cache",
-    "description":  "Cache your data while PHP application is working.",
+    "description":  "Cache your data in Memcached.",
     "license":      "MIT",
     "authors": [
         {
