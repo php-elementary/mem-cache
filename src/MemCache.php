@@ -64,7 +64,7 @@ class MemCache
      */
     public function get($key, callable $cache_cb = null, &$cas_token = null)
     {
-        if (!$this->getRuntimecache()->has($key) || ($cache_cb && $cas_token)) {
+        if (!$this->getRuntimecache()->has($key) || $cache_cb!==null || $cas_token!==null) {
             $result = $this->getMemcached()->get($key, $cache_cb, $cas_token);
             if ($result) {
                 $this->getRuntimecache()->set($key, $result);
@@ -93,7 +93,7 @@ class MemCache
      *
      * @return bool
      */
-    public function flush ($delay = 0)
+    public function flush($delay = 0)
     {
         if ($this->getMemcached()->flush($delay)) {
             return $this->getRuntimecache()->clear();
@@ -120,8 +120,7 @@ class MemCache
      * @param string $key
      * @param int $ttl
      *
-     * @return bool <b>TRUE</b> on success or <b>FALSE</b> on failure.
-     * Use <b>Memcached::getResultCode</b> if necessary.
+     * @return bool
      */
     public function touch($key, $ttl)
     {
@@ -141,7 +140,7 @@ class MemCache
         $nkeys = [];
         $ekeys = [];
         foreach ($keys as $key) {
-            if (!$this->getRuntimecache()->has($key) || ($cas_tokens && $flags)) {
+            if (!$this->getRuntimecache()->has($key) || $cas_tokens!==null || $flags!==null) {
                 $nkeys[]= $key;
             } else {
                 $ekeys[]= $key;
@@ -197,7 +196,12 @@ class MemCache
     public function increment($key, $offset = 1, $initial_value = 0, $expiry = 0)
     {
         $this->getRuntimecache()->delete($key);
-        return $this->getMemcached()->increment($key, $offset, $initial_value, $expiry);
+
+        if ($this->getMemcached()->getOption(Memcached::OPT_BINARY_PROTOCOL)) {
+            return $this->getMemcached()->increment($key, $offset, $initial_value, $expiry);
+        } else {
+            return $this->getMemcached()->increment($key, $offset);
+        }
     }
 
     /**
@@ -212,7 +216,11 @@ class MemCache
     public function decrement($key, $offset = 1, $initial_value = 0, $expiry = 0)
     {
         $this->getRuntimecache()->delete($key);
-        return $this->getMemcached()->decrement($key, $offset, $initial_value, $expiry);
+        if ($this->getMemcached()->getOption(Memcached::OPT_BINARY_PROTOCOL)) {
+            return $this->getMemcached()->decrement($key, $offset, $initial_value, $expiry);
+        } else {
+            return $this->getMemcached()->decrement($key, $offset);
+        }
     }
 
     /**
@@ -372,6 +380,10 @@ class MemCache
         $nServers = [];
         foreach ($servers as $server) {
             if (is_array($server)) {
+                if (!isset($server[2])) {
+                    $server[2] = 0;
+                }
+
                 $key = implode('', $server);
                 if (!array_key_exists($key, $this->servers)) {
                     $nServers[] = $servers;
