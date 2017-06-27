@@ -239,7 +239,7 @@ class MemCache
      */
     public function addServer($host, $port, $weight = 0)
     {
-        return $this->setServers([$host, $port, $weight]);
+        return $this->setServers([[$host, $port, $weight]]);
     }
 
     /**

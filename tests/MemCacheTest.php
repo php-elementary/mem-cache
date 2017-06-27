@@ -6,6 +6,9 @@ use elementary\cache\MemCache\MemCache;
 use Memcached;
 use PHPUnit_Framework_TestCase;
 
+/**
+ * @coversDefaultClass \elementary\cache\MemCache\MemCache
+ */
 class MemCacheTest extends PHPUnit_Framework_TestCase
 {
     /**
@@ -25,6 +28,8 @@ class MemCacheTest extends PHPUnit_Framework_TestCase
 
     /**
      * @test
+     * @covers ::add
+     * @depends cache
      */
     public function add()
     {
@@ -35,11 +40,12 @@ class MemCacheTest extends PHPUnit_Framework_TestCase
 
         $this->getMemory()->get('test');
         $this->assertFalse($this->getMemory()->add('test', 123));
-        $this->assertFalse($this->getMemory()->getRuntimecache()->get('test', false));
+        $this->assertFalse($this->getMemory()->getRuntimecache()->has('test'));
     }
 
     /**
      * @test
+     * @covers ::set
      */
     public function set()
     {
@@ -48,13 +54,14 @@ class MemCacheTest extends PHPUnit_Framework_TestCase
         $this->assertTrue($this->getMemory()->set('test', 123));
         $this->assertEquals(123, $this->getMemcached()->get('test'));
 
-        $this->getMemory()->get('test');
+        $this->assertTrue($this->getMemory()->getRuntimecache()->set('test', 1234));
         $this->getMemory()->set('test', 123);
-        $this->assertFalse($this->getMemory()->getRuntimecache()->get('test', false));
+        $this->assertFalse($this->getMemory()->getRuntimecache()->has('test'));
     }
 
     /**
      * @test
+     * @covers ::get
      */
     public function get()
     {
@@ -62,7 +69,7 @@ class MemCacheTest extends PHPUnit_Framework_TestCase
 
         $this->getMemcached()->set('test', 123);
         $this->assertEquals(123, $this->getMemory()->get('test'));
-        $this->assertEquals(123, $this->getMemory()->getRuntimecache()->get('test', false));
+        $this->assertEquals(123, $this->getMemory()->getRuntimecache()->get('test'));
 
         $this->getMemory()->getRuntimecache()->set('test', 1234);
         $this->assertEquals(1234, $this->getMemory()->get('test'));
@@ -74,6 +81,7 @@ class MemCacheTest extends PHPUnit_Framework_TestCase
 
     /**
      * @test
+     * @covers ::delete
      */
     public function delete()
     {
@@ -86,6 +94,7 @@ class MemCacheTest extends PHPUnit_Framework_TestCase
 
     /**
      * @test
+     * @covers ::setMulti
      */
     public function setMulti()
     {
@@ -98,6 +107,7 @@ class MemCacheTest extends PHPUnit_Framework_TestCase
 
     /**
      * @test
+     * @covers ::getMulti
      */
     public function getMulti()
     {
@@ -106,10 +116,19 @@ class MemCacheTest extends PHPUnit_Framework_TestCase
         $data = ['test' => 123, 'test2' => 1234];
         $this->getMemcached()->setMulti($data);
         $this->assertEquals($data, $this->getMemory()->getMulti(['test', 'test2']));
+        $this->assertEquals(123, $this->getMemory()->getRuntimecache()->get('test'));
+
+        $this->getMemory()->getRuntimecache()->set('test3', 12345);
+        $this->getMemory()->getRuntimecache()->delete('test2');
+        $this->assertEquals(['test' => 123, 'test2' => 1234, 'test3' => 12345], $this->getMemory()->getMulti(['test', 'test2', 'test3']));
+
+        $tokens = [];
+        $this->assertEquals($data, $this->getMemory()->getMulti(['test', 'test2', 'test3'], $tokens));
     }
 
     /**
      * @test
+     * @covers ::deleteMulti
      */
     public function deleteMulti()
     {
@@ -118,24 +137,32 @@ class MemCacheTest extends PHPUnit_Framework_TestCase
         $this->getMemory()->setMulti(['test' => 123, 'test2' => 1234]);
         $this->assertTrue($this->getMemcached()->deleteMulti(['test', 'test2']));
         $this->assertFalse($this->getMemcached()->get('test'));
-        $this->assertFalse($this->getMemory()->getRuntimecache()->get('test2'));
+        $this->assertFalse($this->getMemory()->getRuntimecache()->has('test2'));
     }
 
     /**
      * @test
+     * @covers ::increment
+     * @covers ::decrement
      */
     public function crement()
     {
         fwrite(STDOUT, "\n". __METHOD__);
 
+        $this->getMemory()->getRuntimecache()->set('test1', 123);
         $this->assertEquals(125, $this->getMemory()->increment('test', 2, 123));
         $this->assertEquals(127, $this->getMemory()->increment('test', 2, 123));
+        $this->assertFalse($this->getMemory()->getRuntimecache()->has('test'));
+
+        $this->getMemory()->getRuntimecache()->set('test2', 123);
         $this->assertEquals(121, $this->getMemory()->decrement('test2', 2, 123));
         $this->assertEquals(119, $this->getMemory()->decrement('test2', 2, 123));
+        $this->assertFalse($this->getMemory()->getRuntimecache()->has('test2'));
     }
 
     /**
      * @test
+     * @covers ::getStats
      */
     public function stats()
     {
@@ -143,6 +170,50 @@ class MemCacheTest extends PHPUnit_Framework_TestCase
 
         $stats = array_pop($this->getMemcached()->getStats());
         $this->assertArrayHasKey('version', $stats);
+    }
+    /**
+     * @test
+     * @covers ::getResultCode
+     * @covers ::getResultMessage
+     */
+    public function getResult()
+    {
+        $this->assertInternalType('integer', $this->getMemory()->getResultCode());
+        $this->assertInternalType('string', $this->getMemory()->getResultMessage());
+    }
+
+    /**
+     * @test
+     * @covers ::getServers
+     * @covers ::setServers
+     * @covers ::addServer
+     * @covers ::addServers
+     * @covers ::resetServerList
+     */
+    public function servers()
+    {
+        $mem = new MemCache();
+        $mem->addServer('test', 123);
+        $this->assertEquals([['test', 123]], $mem->getServers());
+
+        $mem->addServers([['test' => 1234], ['test2' => 12]]);
+        $this->assertEquals([['test', 123], ['test2' => 12]], array_keys($mem->getServers()));
+
+        $mem->resetServerList();
+        $this->assertEquals([], $mem->getServers());
+    }
+
+    /**
+     * @test
+     * @covers ::getMemcached
+     * @covers ::setMemcached
+     * @covers ::getRuntimecache
+     * @covers ::setRuntimecache
+     */
+    public function cache()
+    {
+        $this->assertInstanceOf('\Memcached', $this->getMemory()->getMemcached());
+        $this->assertInstanceOf('\Psr\SimpleCache\CacheInterface', $this->getMemory()->getRuntimecache());
     }
 
     protected function setUp()
