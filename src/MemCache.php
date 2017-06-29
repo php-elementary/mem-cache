@@ -323,16 +323,6 @@ class MemCache
     {
         if ($this->memcached === null) {
             $this->setMemcached(new Memcached());
-
-            $servers = array_values($this->getServers());
-            if ($servers) {
-                $this->memcached->addServers($servers);
-            }
-
-            $options = array_values($this->getOptions());
-            if ($options) {
-                $this->memcached->setOptions($options);
-            }
         }
 
         return $this->memcached;
@@ -346,6 +336,16 @@ class MemCache
     public function setMemcached(Memcached $cache)
     {
         $this->memcached = $cache;
+
+        $servers = array_values($this->getServers());
+        if ($servers) {
+            $this->memcached->addServers($servers);
+        }
+
+        $options = $this->getOptions();
+        if ($options) {
+            $this->memcached->setOptions($options);
+        }
 
         return $this;
     }
@@ -398,7 +398,7 @@ class MemCache
 
                 $key = implode('', $server);
                 if (!array_key_exists($key, $this->servers)) {
-                    $nServers[] = $servers;
+                    $nServers[] = $server;
                     $this->servers[$key] = $server;
                 }
             }
@@ -427,12 +427,7 @@ class MemCache
      */
     public function setOptions(array $options)
     {
-        foreach ($options as $key=>$value) {
-            if (!array_key_exists($key, $this->servers)) {
-                $options[$key] = $value;
-                $this->options[$key] = $value;
-            }
-        }
+        $this->options = array_merge($this->options, $options);
 
         if ($this->memcached !== null && !empty($options)) {
             $this->memcached->setOptions($options);
