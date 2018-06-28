@@ -27,6 +27,11 @@ class MemCache
     protected $servers = [];
 
     /**
+     * @var array
+     */
+    protected $options = [];
+
+    /**
      * @link http://php.net/manual/en/memcached.add.php
      * @param string $key
      * @param mixed $value
@@ -318,9 +323,6 @@ class MemCache
     {
         if ($this->memcached === null) {
             $this->setMemcached(new Memcached());
-
-            $servers = array_values($this->getServers());
-            $this->memcached->addServers($servers);
         }
 
         return $this->memcached;
@@ -334,6 +336,16 @@ class MemCache
     public function setMemcached(Memcached $cache)
     {
         $this->memcached = $cache;
+
+        $servers = array_values($this->getServers());
+        if ($servers) {
+            $this->memcached->addServers($servers);
+        }
+
+        $options = $this->getOptions();
+        if ($options) {
+            $this->memcached->setOptions($options);
+        }
 
         return $this;
     }
@@ -386,7 +398,7 @@ class MemCache
 
                 $key = implode('', $server);
                 if (!array_key_exists($key, $this->servers)) {
-                    $nServers[] = $servers;
+                    $nServers[] = $server;
                     $this->servers[$key] = $server;
                 }
             }
@@ -394,6 +406,31 @@ class MemCache
 
         if ($this->memcached !== null && !empty($nServers)) {
             $this->memcached->addServers($nServers);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return array
+     */
+    public function getOptions()
+    {
+        return $this->options;
+    }
+
+    /**
+     * @link http://php.net/manual/en/memcached.setoptions.php
+     * @param array $options
+     *
+     * @return $this
+     */
+    public function setOptions(array $options)
+    {
+        $this->options = array_merge($this->options, $options);
+
+        if ($this->memcached !== null && !empty($options)) {
+            $this->memcached->setOptions($options);
         }
 
         return $this;

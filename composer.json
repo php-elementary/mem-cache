@@ -1,6 +1,6 @@
 {
     "name":         "elementary/mem-cache",
-    "description":  "Cache your data while PHP application is working.",
+    "description":  "Cache your data in Memcached.",
     "license":      "MIT",
     "authors": [
         {
@@ -17,6 +17,8 @@
     "require": {
         "php": ">=5.6",
         "phpunit/phpunit": ">=5.7",
-        "elementary/runtime-cache": "^1.0.0"
+        "psr/simple-cache": "^1.0",
+        "elementary/runtime-cache": "^1.0.0",
+        "elementary/singleton": "^1.0.0"
     }
 }
